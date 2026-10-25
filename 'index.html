@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4338ca">
+<title>Hindi Calendar India - UP</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,"Noto Sans Devanagari",sans-serif;
+  background:#f1f5f9;
+  color:#1e293b;
+}
+header{
+  background:linear-gradient(135deg,#312e81,#6366f1);
+  color:white;
+  text-align:center;
+  padding:24px 12px;
+}
+header h1{font-size:25px;margin:0 0 8px}
+header p{margin:0;font-size:14px}
+.container{max-width:650px;margin:auto;padding:14px}
+.card{
+  background:white;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:15px;
+  box-shadow:0 3px 12px #0000000c;
+}
+h2{font-size:19px;margin:0 0 15px}
+button,input,select{
+  font:inherit;
+  padding:11px;
+  border:1px solid #dbe1ee;
+  border-radius:9px;
+}
+button{cursor:pointer}
+.primary{background:#4338ca;color:white;border:0}
+.controls{display:flex;gap:7px;justify-content:space-between}
+.controls button{flex:1;font-size:13px}
+#monthTitle{text-align:center;margin:18px 0;font-size:21px}
+.week,.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:4px;
+  text-align:center;
+}
+.week div{font-size:12px;font-weight:bold;padding:8px 0}
+.day{
+  position:relative;
+  min-height:47px;
+  padding:7px 0;
+  background:#f1f5f9;
+  border:0;
+  font-size:14px;
+}
+.day.today{background:#4338ca;color:white;font-weight:bold}
+.day.selected{outline:2px solid #f59e0b}
+.day.eventDay:after{
+  content:"";
+  position:absolute;
+  width:5px;height:5px;
+  border-radius:50%;
+  background:#10b981;
+  bottom:4px;left:calc(50% - 2px);
+}
+.day.today.eventDay:after{background:white}
+.full{width:100%;margin-top:8px}
+input,select{width:100%;margin:5px 0 10px;background:white}
+.info{line-height:1.9;font-size:15px}
+.event{padding:10px 0;border-bottom:1px solid #e5e7eb}
+.event:last-child{border-bottom:0}
+.small{font-size:12px;color:#64748b;line-height:1.7}
+footer{text-align:center;padding:15px;font-size:12px;color:#64748b}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>📅 हिंदी कैलेंडर</h1>
+  <p>भारत 🇮🇳 | उत्तर प्रदेश | त्योहार और विशेष दिवस</p>
+</header>
+
+<div class="container">
+
+  <section class="card">
+    <div class="controls">
+      <button onclick="changeMonth(-1)">❮ पिछला</button>
+      <button onclick="goToday()">आज</button>
+      <button onclick="changeMonth(1)">अगला ❯</button>
+    </div>
+
+    <h2 id="monthTitle"></h2>
+
+    <div class="week">
+      <div>रवि</div><div>सोम</div><div>मंगल</div>
+      <div>बुध</div><div>गुरु</div><div>शुक्र</div><div>शनि</div>
+    </div>
+
+    <div class="calendar" id="calendar"></div>
+    <p class="small">🟢 जिस तारीख पर हरा बिंदु है, उस दिन कोई सहेजा हुआ विशेष दिवस है।</p>
+  </section>
+
+  <section class="card">
+    <h2>🗓️ चुनी हुई तारीख</h2>
+    <div id="dateInfo" class="info"></div>
+    <p id="panchang" class="small">
+      हिंदी पंचांग की तिथि और नक्षत्र के लिए सत्यापित पंचांग डेटा स्रोत जोड़ना बाकी है।
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>🔎 त्योहार और विशेष दिवस खोजें</h2>
+    <input id="search" placeholder="जैसे: दीपावली, होली, जन्मदिन"
+           oninput="showEvents()">
+    <div id="eventList"></div>
+  </section>
+
+  <section class="card">
+    <h2>➕ अपना विशेष दिवस जोड़ें</h2>
+
+    <label for="eventName">त्योहार, जन्मदिन या जयंती का नाम</label>
+    <input id="eventName" placeholder="जैसे: राहुल का जन्मदिन">
+
+    <label for="eventDate">तारीख चुनें</label>
+    <input id="eventDate" type="date">
+
+    <label for="eventType">प्रकार</label>
+    <select id="eventType">
+      <option>जन्मदिन</option>
+      <option>जयंती</option>
+      <option>पुण्यतिथि</option>
+      <option>त्योहार</option>
+      <option>अन्य</option>
+    </select>
+
+    <button class="primary full" onclick="addEvent()">जानकारी सेव करें</button>
+    <p class="small">तुम्हारे जोड़े हुए दिवस इसी ब्राउज़र में सेव होंगे।</p>
+  </section>
+
+</div>
+
+<footer>
+  Hindi Calendar India – UP<br>
+  व्यक्तिगत दिवस इस डिवाइस के ब्राउज़र में सेव होते हैं।
+</footer>
+
+<script>
+const monthNames = [
+ "जनवरी","फ़रवरी","मार्च","अप्रैल","मई","जून",
+ "जुलाई","अगस्त","सितंबर","अक्टूबर","नवंबर","दिसंबर"
+];
+
+const weekdays = [
+ "रविवार","सोमवार","मंगलवार","बुधवार",
+ "गुरुवार","शुक्रवार","शनिवार"
+];
+
+const today = new Date();
+today.setHours(0,0,0,0);
+
+let year = today.getFullYear();
+let month = today.getMonth();
+let selected = new Date(today);
+
+function dateKey(d){
+ return d.getFullYear()+"-"+
+ String(d.getMonth()+1).padStart(2,"0")+"-"+
+ String(d.getDate()).padStart(2,"0");
+}
+
+function readEvents(){
+ try{
+  return JSON.parse(localStorage.getItem("hindiCalendarEvents")||"[]");
+ }catch(e){
+  return [];
+ }
+}
+
+function renderCalendar(){
+ document.getElementById("monthTitle").textContent =
+  monthNames[month]+" "+year;
+
+ const box=document.getElementById("calendar");
+ box.innerHTML="";
+
+ const start=new Date(year,month,1).getDay();
+ const total=new Date(year,month+1,0).getDate();
+ const events=readEvents();
+
+ for(let i=0;i<start;i++){
+  box.appendChild(document.createElement("div"));
+ }
+
+ for(let n=1;n<=total;n++){
+  const d=new Date(year,month,n);
+  const key=dateKey(d);
+  const b=document.createElement("button");
+
+  b.className="day";
+  b.textContent=n;
+
+  if(key===dateKey(today)) b.classList.add("today");
+  if(key===dateKey(selected)) b.classList.add("selected");
+  if(events.some(e=>e.date===key)) b.classList.add("eventDay");
+
+  b.onclick=()=>{
+   selected=d;
+   renderCalendar();
+   showDate();
+   showEvents();
+  };
+
+  box.appendChild(b);
+ }
+}
+
+function changeMonth(step){
+ month+=step;
+
+ if(month<0){month=11;year--}
+ if(month>11){month=0;year++}
+
+ renderCalendar();
+}
+
+function goToday(){
+ selected=new Date(today);
+ year=today.getFullYear();
+ month=today.getMonth();
+
+ renderCalendar();
+ showDate();
+ showEvents();
+}
+
+function showDate(){
+ const d=selected;
+
+ document.getElementById("dateInfo").innerHTML=
+  "<b>अंग्रेज़ी तारीख:</b> "+d.toLocaleDateString("en-IN",{
+   day:"numeric",month:"long",year:"numeric"
+  })+"<br>"+
+  "<b>हिंदी तारीख:</b> "+d.toLocaleDateString("hi-IN",{
+   day:"numeric",month:"long",year:"numeric"
+  })+"<br>"+
+  "<b>दिन:</b> "+weekdays[d.getDay()];
+
+ const events=readEvents().filter(e=>e.date===dateKey(d));
+
+ if(events.length){
+  document.getElementById("dateInfo").innerHTML+=
+   "<br><b>विशेष दिवस:</b> "+
+   events.map(e=>e.name+" ("+e.type+")").join(", ");
+ }
+}
+
+function addEvent(){
+ const name=document.getElementById("eventName").value.trim();
+ const date=document.getElementById("eventDate").value;
+ const type=document.getElementById("eventType").value;
+
+ if(!name||!date){
+  alert("कृपया नाम और तारीख दोनों भरें।");
+  return;
+ }
+
+ const events=readEvents();
+ events.push({
+  id:Date.now(),
+  name:name,
+  date:date,
+  type:type
+ });
+
+ try{
+  localStorage.setItem("hindiCalendarEvents",JSON.stringify(events));
+ }catch(e){
+  alert("जानकारी सेव नहीं हो सकी। ब्राउज़र की सेटिंग जाँचें।");
+  return;
+ }
+
+ document.getElementById("eventName").value="";
+ document.getElementById("eventDate").value="";
+
+ renderCalendar();
+ showDate();
+ showEvents();
+
+ alert("विशेष दिवस सेव हो गया!");
+}
+
+function showEvents(){
+ const query=document.getElementById("search").value.trim().toLowerCase();
+ const events=readEvents();
+ const box=document.getElementById("eventList");
+
+ const filtered=events.filter(e=>{
+  const matchesText=(e.name+" "+e.type).toLowerCase().includes(query);
+  return query ? matchesText : e.date===dateKey(selected);
+ }).sort((a,b)=>a.date.localeCompare(b.date));
+
+ if(!filtered.length){
+  box.innerHTML="<p class='small'>कोई सेव किया हुआ विशेष दिवस नहीं मिला। ऊपर दिए गए फॉर्म से अपना दिवस जोड़ सकते हो।</p>";
+  return;
+ }
+
+ box.innerHTML=filtered.map(e=>
+  "<div class='event'>"+
+  "<b>📌 "+escapeHTML(e.name)+"</b><br>"+
+  "<span class='small'>"+escapeHTML(e.type)+" • "+escapeHTML(e.date)+"</span><br>"+
+  "<button onclick='deleteEvent("+Number(e.id)+")'>हटाएँ</button>"+
+  "</div>"
+ ).join("");
+}
+
+function escapeHTML(value){
+ return String(value).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",
+  '"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function deleteEvent(id){
+ if(!confirm("क्या यह विशेष दिवस हटाना चाहते हो?")) return;
+
+ const events=readEvents().filter(e=>e.id!==id);
+
+ try{
+  localStorage.setItem("hindiCalendarEvents",JSON.stringify(events));
+ }catch(e){
+  alert("जानकारी अपडेट नहीं हो सकी।");
+  return;
+ }
+
+ renderCalendar();
+ showDate();
+ showEvents();
+}
+
+renderCalendar();
+showDate();
+showEvents();
+</script>
+
+</body>
+  </html>
